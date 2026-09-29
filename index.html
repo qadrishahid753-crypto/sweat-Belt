@@ -87,6 +87,17 @@ h2{font-size:clamp(28px,4vw,44px);line-height:1.05;margin:8px 0 12px;letter-spac
 .feature h3{margin:8px 0 5px;font-size:18px}
 .feature p{margin:0;color:#666;font-size:14px}
 .order-wrap{display:grid;grid-template-columns:.9fr 1.1fr;gap:30px;align-items:start}
+.order-section-hidden{display:none}
+.processing-modal,.thankyou-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:50;align-items:center;justify-content:center;padding:20px}
+.processing-modal.show,.thankyou-modal.show{display:flex}
+.processing-box,.thankyou-box{background:#fff;border-radius:24px;width:min(440px,100%);padding:38px 25px;text-align:center;box-shadow:0 25px 80px rgba(0,0,0,.35)}
+.count-number{font-size:88px;line-height:1;font-weight:1000;margin:8px 0;color:#111}
+.processing-title{font-size:25px;font-weight:1000;margin:0}
+.processing-sub{color:#777;margin:8px 0 0}
+.thank-check{width:72px;height:72px;border-radius:50%;background:var(--yellow);display:grid;place-items:center;font-size:38px;font-weight:1000;margin:0 auto 16px}
+.thankyou-box h2{margin:0 0 8px;font-size:34px}
+.thankyou-box p{color:#666;margin:7px 0}
+
 .order-card,.info-card{background:#fff;border:1px solid #e5e5e5;border-radius:20px;padding:28px;box-shadow:0 12px 35px rgba(0,0,0,.05)}
 .info-card{background:#111;color:#fff;border-color:#111;position:sticky;top:18px}
 .info-card .yellow{color:var(--yellow)}
@@ -211,7 +222,7 @@ textarea{min-height:92px;resize:vertical}
   </div>
 </section>
 
-<section class="section" id="order">
+<section class="section order-section-hidden" id="order">
   <div class="container order-wrap">
     <div class="info-card">
       <div class="kicker yellow">ORDER TODAY</div>
@@ -283,6 +294,26 @@ textarea{min-height:92px;resize:vertical}
   <div class="container">© Sweat Waist Trimmer • Cash on Delivery • All Rights Reserved</div>
 </footer>
 
+
+<div class="processing-modal" id="processingModal">
+  <div class="processing-box">
+    <div class="processing-title">Processing Your Order</div>
+    <div class="count-number" id="countNumber">3</div>
+    <div class="processing-sub">Please wait while we process your order...</div>
+  </div>
+</div>
+
+<div class="thankyou-modal" id="thankyouModal">
+  <div class="thankyou-box">
+    <div class="thank-check">✓</div>
+    <h2>Thank You!</h2>
+    <p style="font-size:17px;font-weight:800;color:#111">Your order has been placed successfully.</p>
+    <p id="thankOrderNo"></p>
+    <p>Our team will contact you shortly to confirm your Cash on Delivery order.</p>
+    <button class="order-btn" onclick="document.getElementById('thankyouModal').classList.remove('show');document.getElementById('order').classList.add('order-section-hidden');window.scrollTo({top:0,behavior:'smooth'})">CONTINUE SHOPPING</button>
+  </div>
+</div>
+
 <div class="toast" id="toast">Order details updated ✓</div>
 
 <div class="modal" id="modal">
@@ -314,6 +345,7 @@ qty.addEventListener('change', updateTotal);
 
 document.getElementById('orderForm').addEventListener('submit', function(e) {
   e.preventDefault();
+
   const q = Number(qty.value);
   const name = document.getElementById('name').value.trim();
   const phone = document.getElementById('phone').value.trim();
@@ -322,26 +354,38 @@ document.getElementById('orderForm').addEventListener('submit', function(e) {
   const near = document.getElementById('near').value.trim();
 
   const orderNo = 'SW' + Math.floor(100000 + Math.random() * 900000);
-  document.getElementById('confirmDetails').innerHTML = `
-    <b>ORDER NUMBER</b><div style="font-size:20px;font-weight:1000;margin:3px 0 12px">${orderNo}</div>
-    <div><b>Name:</b> ${name}</div>
-    <div><b>Mobile:</b> ${phone}</div>
-    <div><b>City:</b> ${city}</div>
-    <div><b>Address:</b> ${address}</div>
-    <div><b>Nearest:</b> ${near}</div>
-    <div><b>Quantity:</b> ${q}</div>
-    <hr style="border:0;border-top:1px solid #ddd;margin:10px 0">
-    <div><b>Product:</b> ${money(PRICE*q)}</div>
-    <div><b>Delivery:</b> ${money(DELIVERY)}</div>
-    <div style="font-size:17px;margin-top:5px"><b>Total:</b> ${money(PRICE*q+DELIVERY)}</div>
-    <div style="margin-top:8px;font-weight:800">Cash on Delivery</div>
-  `;
-  document.getElementById('modal').classList.add('show');
+  const total = PRICE * q + DELIVERY;
+
+  document.getElementById('thankOrderNo').innerHTML =
+    '<b>Order #' + orderNo + '</b><br>Total: <b>' + money(total) + '</b> • Cash on Delivery';
+
+  const processing = document.getElementById('processingModal');
+  const count = document.getElementById('countNumber');
+  processing.classList.add('show');
+
+  let number = 3;
+  count.textContent = number;
+
+  const timer = setInterval(() => {
+    number--;
+    if (number > 0) {
+      count.textContent = number;
+    } else {
+      clearInterval(timer);
+      processing.classList.remove('show');
+      document.getElementById('thankyouModal').classList.add('show');
+    }
+  }, 1000);
 });
 
-document.querySelectorAll('a[href="#order"]').forEach(a => a.addEventListener('click', () => {
-  setTimeout(() => document.getElementById('name').focus(), 500);
+document.querySelectorAll('a[href="#order"]').forEach(a => a.addEventListener('click', (e) => {
+  e.preventDefault();
+  const section = document.getElementById('order');
+  section.classList.remove('order-section-hidden');
+  section.scrollIntoView({behavior:'smooth', block:'start'});
+  setTimeout(() => document.getElementById('name').focus(), 650);
 }));
+
 </script>
 </body>
 </html>
