@@ -88,6 +88,17 @@ h2{font-size:clamp(28px,4vw,44px);line-height:1.05;margin:8px 0 12px;letter-spac
 .feature p{margin:0;color:#666;font-size:14px}
 .order-wrap{display:grid;grid-template-columns:.9fr 1.1fr;gap:30px;align-items:start}
 .order-section-hidden{display:none}
+#order.order-open{
+  display:block;position:fixed;inset:0;z-index:40;overflow-y:auto;
+  background:rgba(0,0,0,.72);padding:24px 12px;
+}
+#order.order-open .container{max-width:920px;margin:30px auto}
+.order-close{
+  position:absolute;right:18px;top:14px;width:38px;height:38px;border:0;
+  border-radius:50%;background:#111;color:#fff;font-size:24px;cursor:pointer;
+  z-index:2;line-height:1;
+}
+.order-open .order-wrap{background:#f5f5f2;border-radius:24px;padding:18px}
 .processing-modal,.thankyou-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:50;align-items:center;justify-content:center;padding:20px}
 .processing-modal.show,.thankyou-modal.show{display:flex}
 .processing-box,.thankyou-box{background:#fff;border-radius:24px;width:min(440px,100%);padding:38px 25px;text-align:center;box-shadow:0 25px 80px rgba(0,0,0,.35)}
@@ -223,6 +234,7 @@ textarea{min-height:92px;resize:vertical}
 </section>
 
 <section class="section order-section-hidden" id="order">
+  <button class="order-close" id="orderClose" aria-label="Close order form">×</button>
   <div class="container order-wrap">
     <div class="info-card">
       <div class="kicker yellow">ORDER TODAY</div>
@@ -304,13 +316,42 @@ textarea{min-height:92px;resize:vertical}
 </div>
 
 <div class="thankyou-modal" id="thankyouModal">
-  <div class="thankyou-box">
+  <div class="thankyou-box" style="max-height:92vh;overflow:auto">
     <div class="thank-check">✓</div>
     <h2>Thank You!</h2>
     <p style="font-size:17px;font-weight:800;color:#111">Your order has been placed successfully.</p>
     <p id="thankOrderNo"></p>
-    <p>Our team will contact you shortly to confirm your Cash on Delivery order.</p>
-    <button class="order-btn" onclick="document.getElementById('thankyouModal').classList.remove('show');document.getElementById('order').classList.add('order-section-hidden');window.scrollTo({top:0,behavior:'smooth'})">CONTINUE SHOPPING</button>
+
+    <div style="text-align:left;background:#f6f6f3;border:1px solid #e2e2df;border-radius:15px;padding:16px;margin:18px 0">
+      <div style="font-weight:1000;font-size:15px;margin-bottom:10px">ORDER SUMMARY</div>
+      <div class="sumline"><span>Product</span><b>Sweat Waist Trimmer</b></div>
+      <div class="sumline"><span>Quantity</span><b id="thankQty">1</b></div>
+      <div class="sumline"><span>Product Price</span><b id="thankProductPrice">Rs. 1,299</b></div>
+      <div class="sumline"><span>Delivery Charges</span><b>Rs. 200</b></div>
+      <div class="sumline total"><span>Total Payable</span><span id="thankTotal">Rs. 1,499</span></div>
+      <div style="margin-top:9px;font-size:12px;color:#666">Payment Method: <b>Cash on Delivery</b></div>
+    </div>
+
+    <div style="text-align:left;background:#fff;border:1px solid #e2e2df;border-radius:15px;padding:16px;margin-bottom:18px">
+      <div style="font-weight:1000;font-size:15px;margin-bottom:10px">CUSTOMER DETAILS</div>
+      <div class="sumline"><span>Full Name</span><b id="thankName">—</b></div>
+      <div class="sumline"><span>Phone Number</span><b id="thankPhone">—</b></div>
+      <div class="sumline"><span>City</span><b id="thankCity">—</b></div>
+      <div style="margin-top:8px;font-size:13px;color:#666">Complete Address</div>
+      <div id="thankAddress" style="font-weight:800;margin-top:3px">—</div>
+      <div style="margin-top:10px;font-size:13px;color:#666">Nearest Place / Landmark</div>
+      <div id="thankNear" style="font-weight:800;margin-top:3px">—</div>
+    </div>
+
+    <p>Our team will contact you shortly to confirm the order.</p>
+    <button class="order-btn" onclick="document.getElementById('thankyouModal').classList.remove('show');
+document.getElementById('orderForm').reset();
+updateTotal();
+document.getElementById('order').classList.add('order-section-hidden');
+document.getElementById('order').classList.remove('order-open');
+document.getElementById('processingModal').classList.remove('show');
+document.body.style.overflow = '';
+window.scrollTo({top:0,behavior:'smooth'});">CONTINUE SHOPPING</button>
   </div>
 </div>
 
@@ -354,10 +395,20 @@ document.getElementById('orderForm').addEventListener('submit', function(e) {
   const near = document.getElementById('near').value.trim();
 
   const orderNo = 'SW' + Math.floor(100000 + Math.random() * 900000);
-  const total = PRICE * q + DELIVERY;
+  const productAmount = PRICE * q;
+  const total = productAmount + DELIVERY;
 
   document.getElementById('thankOrderNo').innerHTML =
-    '<b>Order #' + orderNo + '</b><br>Total: <b>' + money(total) + '</b> • Cash on Delivery';
+    '<b>Order #' + orderNo + '</b>';
+
+  document.getElementById('thankQty').textContent = q + (q === 1 ? ' Belt' : ' Belts');
+  document.getElementById('thankProductPrice').textContent = money(productAmount);
+  document.getElementById('thankTotal').textContent = money(total);
+  document.getElementById('thankName').textContent = name;
+  document.getElementById('thankPhone').textContent = phone;
+  document.getElementById('thankCity').textContent = city;
+  document.getElementById('thankAddress').textContent = address;
+  document.getElementById('thankNear').textContent = near;
 
   const processing = document.getElementById('processingModal');
   const count = document.getElementById('countNumber');
@@ -382,9 +433,17 @@ document.querySelectorAll('a[href="#order"]').forEach(a => a.addEventListener('c
   e.preventDefault();
   const section = document.getElementById('order');
   section.classList.remove('order-section-hidden');
-  section.scrollIntoView({behavior:'smooth', block:'start'});
-  setTimeout(() => document.getElementById('name').focus(), 650);
+  section.classList.add('order-open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('name').focus(), 250);
 }));
+
+document.getElementById('orderClose').addEventListener('click', () => {
+  const section = document.getElementById('order');
+  section.classList.remove('order-open');
+  section.classList.add('order-section-hidden');
+  document.body.style.overflow = '';
+});
 
 </script>
 </body>
