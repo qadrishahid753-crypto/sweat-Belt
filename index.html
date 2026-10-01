@@ -164,6 +164,24 @@ textarea{min-height:92px;resize:vertical}
   .cta{box-shadow:0 6px 0 #111}
 }
 </style>
+<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f.fbq=n; n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '1828510378169959');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=1828510378169959&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Meta Pixel Code -->
+
 </head>
 <body>
 
@@ -461,6 +479,25 @@ document.getElementById('orderForm').addEventListener('submit', async function(e
     } else {
       clearInterval(timer);
       processing.classList.remove('show');
+
+      // Meta Pixel Purchase event: fires when the customer reaches Thank You.
+      if (typeof fbq === 'function') {
+        const purchaseKey = 'sw_purchase_' + orderNo;
+        let alreadyTracked = false;
+        try { alreadyTracked = sessionStorage.getItem(purchaseKey) === '1'; } catch (e) {}
+        if (!alreadyTracked) {
+          fbq('track', 'Purchase', {
+            value: total,
+            currency: 'PKR',
+            content_name: 'Sweat Waist Trimmer',
+            content_type: 'product',
+            quantity: q,
+            order_id: orderNo
+          });
+          try { sessionStorage.setItem(purchaseKey, '1'); } catch (e) {}
+        }
+      }
+
       document.getElementById('thankyouModal').classList.add('show');
     }
   }, 1000);
