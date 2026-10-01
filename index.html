@@ -384,8 +384,16 @@ function updateTotal() {
 }
 qty.addEventListener('change', updateTotal);
 
-document.getElementById('orderForm').addEventListener('submit', function(e) {
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwOFmIir2oFHGzcXjzdxPmVxAkO_2r8PGwEe-GbN70emjuxauYVVBvRssVwOZ-M075V0Q/exec';
+
+document.getElementById('orderForm').addEventListener('submit', async function(e) {
   e.preventDefault();
+
+  const form = this;
+  if (!form.checkValidity()) {
+    form.reportValidity();
+    return;
+  }
 
   const q = Number(qty.value);
   const name = document.getElementById('name').value.trim();
@@ -398,9 +406,7 @@ document.getElementById('orderForm').addEventListener('submit', function(e) {
   const productAmount = PRICE * q;
   const total = productAmount + DELIVERY;
 
-  document.getElementById('thankOrderNo').innerHTML =
-    '<b>Order #' + orderNo + '</b>';
-
+  document.getElementById('thankOrderNo').innerHTML = '<b>Order #' + orderNo + '</b>';
   document.getElementById('thankQty').textContent = q + (q === 1 ? ' Belt' : ' Belts');
   document.getElementById('thankProductPrice').textContent = money(productAmount);
   document.getElementById('thankTotal').textContent = money(total);
@@ -409,6 +415,37 @@ document.getElementById('orderForm').addEventListener('submit', function(e) {
   document.getElementById('thankCity').textContent = city;
   document.getElementById('thankAddress').textContent = address;
   document.getElementById('thankNear').textContent = near;
+
+  const orderData = {
+    orderNo,
+    name,
+    phone,
+    city,
+    address,
+    near,
+    product: 'Sweat Waist Trimmer',
+    quantity: q,
+    productPrice: productAmount,
+    deliveryCharges: DELIVERY,
+    total,
+    paymentMethod: 'Cash on Delivery',
+    status: 'New Order',
+    source: 'Website'
+  };
+
+  // Send to Google Apps Script in the background so a slow Sheet request
+  // cannot prevent the processing/Thank You flow.
+  if (APPS_SCRIPT_URL && !APPS_SCRIPT_URL.includes('PASTE_YOUR_')) {
+    try {
+      fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {'Content-Type': 'text/plain;charset=utf-8'},
+        body: JSON.stringify(orderData),
+        keepalive: true
+      }).catch(() => {});
+    } catch (_) {}
+  }
 
   const processing = document.getElementById('processingModal');
   const count = document.getElementById('countNumber');
